@@ -10,6 +10,10 @@ const Winreg = require('winreg'); // Importando winreg
 const { spawn } = require('child_process');
 const { globalShortcut } = require('electron');
 const { autoUpdater } = require("electron-updater")
+const log = require('electron-log');
+
+autoUpdater.logger = log;
+autoUpdater.logger.transports.file.level = 'info';
 
 if (require('electron-squirrel-startup')) {
 	app.quit();
@@ -635,8 +639,30 @@ function checkAndUpdateRegistry() {
 	});
 }
 
+autoUpdater.on('update-available', () => {
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Atualização disponível',
+    message: 'Uma nova versão está disponível. Baixando agora...'
+  });
+});
+
+autoUpdater.on('update-downloaded', () => {
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Atualização pronta',
+    message: 'Uma nova versão foi baixada. O aplicativo será atualizado agora.'
+  }).then(() => {
+    autoUpdater.quitAndInstall();
+  });
+});
+
+autoUpdater.on('error', (error) => {
+  log.error('Erro ao verificar atualizações:', error);
+});
 
 app.whenReady().then(() => {
+	autoUpdater.checkForUpdatesAndNotify();
     checkAndUpdateRegistry(); // Verifica e atualiza a chave do registro
     createWindow('index.html');
 

@@ -1,14 +1,14 @@
 {
   "name": "horizonte",
   "productName": "Horizonte",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "My Electron application description",
   "main": "src/index.js",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "publish": "electron-forge publish",
+    "publish": "electron-builder --publish always",
     "lint": "echo \"No linting configured\"",
     "build": "electron-builder"
   },
@@ -34,6 +34,7 @@
     "adm-zip": "^0.5.16",
     "child_process": "^1.0.2",
     "discord-rpc": "^4.0.1",
+    "electron-log": "^5.2.0",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^10.0.0",
     "electron-updater": "^6.3.9",
@@ -54,7 +55,8 @@
         "provider": "github",
         "owner": "thiagomcastro",
         "repo": "horizontelauncher",
-        "private": true
+        "private": true,
+        "releaseType": "release"
       }
     ],
     "files": [
