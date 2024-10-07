@@ -1,0 +1,100 @@
+{
+  "name": "horizonte",
+  "productName": "Horizonte",
+  "version": "1.0.0",
+  "description": "My Electron application description",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "lint": "echo \"No linting configured\"",
+    "build": "electron-builder"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.5.0",
+    "@electron-forge/maker-deb": "^7.5.0",
+    "@electron-forge/maker-rpm": "^7.5.0",
+    "@electron-forge/maker-squirrel": "^7.5.0",
+    "@electron-forge/maker-zip": "^7.5.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.5.0",
+    "@electron-forge/plugin-fuses": "^7.5.0",
+    "@electron/fuses": "^1.8.0",
+    "electron": "32.1.2",
+    "electron-builder": "^25.1.7"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Thiago Castro",
+    "email": "48470238+ThiagoMCastro@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "child_process": "^1.0.2",
+    "discord-rpc": "^4.0.1",
+    "electron-squirrel-startup": "^1.0.1",
+    "electron-store": "^10.0.0",
+    "electron-updater": "^6.3.9",
+    "https": "^1.0.0",
+    "os": "^0.1.2",
+    "path": "^0.12.7",
+    "sound-play": "^1.1.0",
+    "winreg": "^1.2.5"
+  },
+  "build": {
+    "appId": "com.horizonte-rp",
+    "productName": "Horizonte Roleplay",
+    "directories": {
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "thiagomcastro",
+        "repo": "horizontelauncher",
+        "private": true
+      }
+    ],
+    "files": [
+      "src/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "src/bin/DXSETUP.exe",
+      "src/bin/VisualCppRedist_AIO_x86_x64.exe"
+    ],
+    "extraFiles": [
+      {
+        "from": "src/bin/DXSETUP.exe",
+        "to": "DXSETUP.exe"
+      },
+      {
+        "from": "src/bin/VisualCppRedist_AIO_x86_x64.exe",
+        "to": "VisualCppRedist_AIO_x86_x64.exe"
+      }
+    ],
+    "win": {
+      "sign": false,
+      "target": [
+        "nsis"
+      ],
+      "icon": "src/assets/appIcon.ico"
+    },
+    "nsis": {
+      "perMachine": true,
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": false,
+      "installerIcon": "src/assets/appIcon.ico",
+      "uninstallerIcon": "src/assets/uninstallIcon.ico",
+      "uninstallDisplayName": "Desinstalar Horizonte Roleplay",
+      "license": "license.txt",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "include": "src/installer.nsh",
+      "installerSidebar": "./src/assets/sidebar_banner.bmp",
+      "uninstallerSidebar": "./src/assets/sidebar_banner.bmp",
+      "artifactName": "Horizonte Launcher v${version}.${ext}"
+    }
+  }
+}
