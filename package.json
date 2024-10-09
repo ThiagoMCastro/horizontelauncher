@@ -1,16 +1,15 @@
 {
   "name": "horizonte",
-  "productName": "Horizonte",
-  "version": "1.0.1",
-  "description": "My Electron application description",
-  "main": "src/index.js",
+  "productName": "Horizonte Roleplay Launcher",
+  "version": "0.0.10",
+  "description": "Horizonte Roleplay Launcher",
+  "main": "src/index.obfuscated.js",
   "scripts": {
-    "start": "electron-forge start",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
+    "start": "npm run obfuscate && electron-forge start",
     "publish": "electron-builder --publish always",
     "lint": "echo \"No linting configured\"",
-    "build": "electron-builder"
+    "build": "npm run obfuscate && electron-builder",
+    "obfuscate": "javascript-obfuscator ./src/index.js --output ./src/index.obfuscated.js --compact true --control-flow-flattening true && javascript-obfuscator ./src/js/index.js --output ./src/js/index.obfuscated.js --compact true --control-flow-flattening true && javascript-obfuscator ./src/preload.js --output ./src/preload.obfuscated.js --compact true --control-flow-flattening true"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.5.0",
@@ -22,11 +21,12 @@
     "@electron-forge/plugin-fuses": "^7.5.0",
     "@electron/fuses": "^1.8.0",
     "electron": "32.1.2",
-    "electron-builder": "^25.1.7"
+    "electron-builder": "^25.1.7",
+    "javascript-obfuscator": "^4.1.1"
   },
   "keywords": [],
   "author": {
-    "name": "Thiago Castro",
+    "name": "Horizonte Roleplay",
     "email": "48470238+ThiagoMCastro@users.noreply.github.com"
   },
   "license": "MIT",
@@ -34,6 +34,7 @@
     "adm-zip": "^0.5.16",
     "child_process": "^1.0.2",
     "discord-rpc": "^4.0.1",
+    "dotenv": "^16.4.5",
     "electron-log": "^5.2.0",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^10.0.0",
@@ -56,11 +57,18 @@
         "owner": "thiagomcastro",
         "repo": "horizontelauncher",
         "private": true,
+        "token": "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",
         "releaseType": "release"
       }
     ],
     "files": [
       "src/**/*",
+      "src/preload.obfuscated.js",
+      "src/index.obfuscated.js",
+      "src/js/index.obfuscated.js",
+      "!src/js/index.js",
+      "!src/index.js",
+      "!src/preload.js",
       "node_modules/**/*",
       "package.json",
       "src/bin/DXSETUP.exe",
@@ -96,7 +104,7 @@
       "include": "src/installer.nsh",
       "installerSidebar": "./src/assets/sidebar_banner.bmp",
       "uninstallerSidebar": "./src/assets/sidebar_banner.bmp",
-      "artifactName": "Horizonte Launcher v${version}.${ext}"
+      "artifactName": "Horizonte Launcher.${ext}"
     }
   }
 }

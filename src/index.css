@@ -176,8 +176,8 @@ body {
 	text-transform: uppercase;
 	border-color: #009bec;
   transition: all .25s!important;
-	padding: 9px 20px 9px 20px;
-	margin: 0!important;
+  padding: 9px 20px 9px 20px;
+  margin: 0!important;
 }
 .btn-header > i {
 	padding: 0!important;
@@ -186,7 +186,7 @@ body {
 .btn-header:hover, .btn-header:focus, .btn-header:active {
 	background: linear-gradient(to right, #1d9feb, #3896c5) !important;
   transform: scale(1.05);
-	color: white;
+  color: white;
 }
 .btn-header.disabled:hover, .btn-header.disabled, .btn-header.disabled:active {
 	opacity: 0.5;
@@ -387,10 +387,10 @@ body {
 
 .playing_music {
   padding: 0!important;
-	font-family: "MonumentExtendedMedium";
+  font-family: "MonumentExtendedMedium";
   margin-top: -30px;
-	font-size: 0.5em;
-	text-transform: uppercase;
+  font-size: 0.5em;
+  text-transform: uppercase;
 }
 
 .progress, .progress-stacked {
@@ -431,27 +431,27 @@ body {
 }
 
 .btn-window-mute {
-      background: #2b47515e;
-    border: 1px solid #36555f;
-    color: #88a2ab;
+  background: #2b47515e;
+  border: 1px solid #36555f;
+  color: #88a2ab;
 }
 
 .btn-window-close {
-        background: #2b47515e;
-    border: 1px solid #36555f;
-    color: #88a2ab;
+  background: #2b47515e;
+  border: 1px solid #36555f;
+  color: #88a2ab;
 }
 
 .btn-window-minimize {
-      background: #2b47515e;
-    border: 1px solid #36555f;
-    color: #88a2ab;
+  background: #2b47515e;
+  border: 1px solid #36555f;
+  color: #88a2ab;
 }
 
 .btn-window-settings {
-      background: #2b47515e;
-    border: 1px solid #36555f;
-    color: #88a2ab;
+  background: #2b47515e;
+  border: 1px solid #36555f;
+  color: #88a2ab;
 }
 
 .btn-window > i {
@@ -478,12 +478,12 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   align-items: center;
   justify-content: center;
   border-radius: 5px;
-  background: #041e2fad;
+  background: #009bec12;
+  border: 1px solid #009bec12;
   backdrop-filter: blur(10px);
+  font-family: "MonumentExtendedMedium"!important;
   color: #ffffff;
-  border: 1px solid #009bec6b;
-  font-family: inherit;
-  font-size: 1rem;
+  font-size: 0.8rem;
 }
 .modal-content {
   position: relative;
@@ -493,16 +493,15 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   color: var(--bs-modal-color);
   pointer-events: auto;
   backdrop-filter: blur(10px);
-  background-color: #041e2fad;
-  background-clip: padding-box;
-  border: 1px solid #009bec6b;
+  background: #009bec12;
+  border: 1px solid #009bec12;
   border-radius: 1rem;
   outline: 0;
 }
 div:where(.swal2-container) input:where(.swal2-input), div:where(.swal2-container) input:where(.swal2-file), div:where(.swal2-container) textarea:where(.swal2-textarea) {
-  background: #ffffff36 !important;
+  background: #009bec12;
+  border: 1px solid #009bec12;
   padding-top: 18px;
-  border: none !important;
   font-size: 0.8em;
   display: flex;
   align-items: center;
@@ -533,6 +532,28 @@ div:where(.swal2-container).swal2-center>.swal2-popup {
   place-self: center center;
   border-radius: 1rem;
   padding: 29px !important;
+}
+.form_folder:disabled, .form_folder:active, .form_folder:focus {
+  margin: 0 !important;
+  border-radius: .7rem;
+  background: #009bec12;
+  border: 1px solid #009bec12;
+  cursor: default;
+  padding-top: 10px;
+  backdrop-filter: blur(10px);
+  font-size: 0.7em;
+  padding-inline: 10px;
+  font-family: 'MonumentExtended';
+  padding-bottom: 10px;
+  padding-right: 0px;
+  color: #ffffff !important;
+  cursor: text;
+}
+.inputLabel {
+  font-family: "MonumentExtendedMedium";
+  font-size: 0.8em;
+  color: #fff;
+  text-transform: uppercase;
 }
 .form_nick {
   margin: 0 !important;
@@ -677,7 +698,7 @@ div:where(.swal2-container).swal2-center>.swal2-popup {
   font-size: 1.2em;
 }
 
-.btn > i {
+.btn > * {
 	pointer-events: none;
 }
 
@@ -1074,21 +1095,21 @@ div:where(.swal2-container) div:where(.swal2-validation-message)::before {
 }
 
 .card_news {
-    background-image: linear-gradient(to top, #041925, transparent), url(https://i.ytimg.com/vi/AjRloT-y2HU/maxresdefault.jpg);
-    background-size: cover;
-    width: 100%;
-    cursor: pointer;
-    height: 150px;
-    box-shadow: 0px 0px 17px 0px #051f2d;
-    border-radius: .5rem !important;
-    flex-direction: column;
-    border: 1px solid #3f6e87;
-    display: flex;
-    justify-content: end;
-    padding-bottom: 10px;
-    padding-inline: 10px;
-    transition: all .25s;
-    align-items: start;
+  background-image: linear-gradient(to top, #041925, transparent), url(https://i.ytimg.com/vi/AjRloT-y2HU/maxresdefault.jpg);
+  background-size: cover;
+  width: 100%;
+  cursor: pointer;
+  height: 150px;
+  box-shadow: 0px 0px 17px 0px #051f2d;
+  border-radius: .5rem !important;
+  flex-direction: column;
+  border: 1px solid #3f6e87;
+  display: flex;
+  justify-content: end;
+  padding-bottom: 10px;
+  padding-inline: 10px;
+  transition: all .25s;
+  align-items: start;
 }
 
 .card_news:hover {
@@ -1127,4 +1148,38 @@ div:where(.swal2-container) div:where(.swal2-validation-message)::before {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.beta_alert {
+  background: #2b47515e;
+  border: 1px solid #36555f;
+  padding: 5px 10px;
+  color: #88a2ab;
+  font-size: 0.7em;
+}
+
+.player_home_card {
+  margin: 0 !important;
+  border-radius: .7rem;
+  background: #009bec12;
+  border: 1px solid #009bec12;
+  padding-top: 18px;
+  backdrop-filter: blur(10px);
+  font-size: 0.8em;
+  padding-left: 45px;
+  font-family: 'MonumentExtended';
+  padding-bottom: 16px;
+  width: 265px!important;
+  padding-right: 0px;
+  color: #ffffff !important;
+  cursor: text;
+}
+
+.player_home_card_skin {
+      height: 89px;
+    object-fit: cover;
+    object-position: top;
+    width: 90px;
+    margin-top: -31px;
+    margin-left: -10px;
 }

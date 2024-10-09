@@ -11,60 +11,70 @@ const { spawn } = require('child_process');
 const { globalShortcut } = require('electron');
 const { autoUpdater } = require("electron-updater")
 const log = require('electron-log');
+require('dotenv').config();
 
-autoUpdater.logger = log;
-autoUpdater.logger.transports.file.level = 'info';
-
+autoUpdater.logger = require("electron-log");
+autoUpdater.logger.transports.file.level = "info"; // Altere para "debug" para mais detalhes
+autoUpdater.logger.transports.console.level = "info"; // Altere para "debug" para mais detalhes
+autoUpdater.addAuthHeader(`Bearer ${process.env.GITHUB_TOKEN}`);
 if (require('electron-squirrel-startup')) {
 	app.quit();
 }
 
-const configDir = path.join(os.homedir(), 'Documents', 'Horizonte Roleplay');
+const configDir = path.join(os.homedir(), 'Documents', 'Horizonte Roleplay Launcher');
 const configPath = path.join(configDir, 'settings.json');
 
-// Função para garantir que o diretório e o arquivo existam
 function ensureConfigFile() {
-    // Verifique se a pasta "Horizonte Roleplay" existe
 	if (!fs.existsSync(configDir)) {
 		fs.mkdirSync(configDir, { recursive: true });
 	}
 
-    // Verifique se o arquivo "settings.json" existe
 	if (!fs.existsSync(configPath)) {
-        // Se não existir, cria um arquivo com uma configuração padrão
+		app.setLoginItemSettings({
+			openAtLogin: true
+		})
 		const defaultConfig = {
-			selectedServer: 0
+			selectedServer: 1,
+			gameVersion: 0,
+			currentVersion: app.getVersion(),
 		};
 
 		fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 4));
-		console.log('Arquivo de configuração criado com configuração padrão.');
 	}
 }
 
 function saveSelectedServer(serverId) {
-    // Carregar a configuração atual
-	console.log("Tentando salvar servidor " + serverId)
 	const config = loadConfig();
-
-    // Atualizar o servidor selecionado
+	if(serverId < 1) serverId = 1;
+	else if(serverId > 4) serverId = 4;
 	config.selectedServer = serverId;
-
-    // Salvar no arquivo
 	fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
-	console.log('Servidor selecionado salvo com sucesso.');
 }
 
-// Função para carregar o arquivo de configuração
+function saveCurrentLauncherVersion(version) {
+	const config = loadConfig();
+	config.currentVersion = version;
+	fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
+}
+
+
+function saveCurrentGameVersion(version) {
+	const config = loadConfig();
+	config.gameVersion = version;
+	fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
+}
+
 function loadConfig() {
-    ensureConfigFile();  // Certifica que o arquivo de configuração exista
-    const configData = fs.readFileSync(configPath, 'utf8');
-    return JSON.parse(configData);  // Retorna o conteúdo do arquivo como objeto
+	ensureConfigFile();
+	const configData = fs.readFileSync(configPath, 'utf8');
+	return JSON.parse(configData);
 }
 
-// Função para carregar o servidor selecionado
 function loadSelectedServer() {
 	const config = loadConfig();
-    return config.selectedServer || 1;  // Garantir que sempre retorne um valor válido (0 como fallback)
+	if(config.selectedServer < 1) saveSelectedServer(1);
+	else if(config.selectedServer > 4) saveSelectedServer(4);
+    return loadConfig().selectedServer;  // Garantir que sempre retorne um valor válido (0 como fallback)
 }
 
 
@@ -142,6 +152,7 @@ setInterval(updateServerInfo, 10000);  // Ajuste o intervalo para uma atualizaç
 
 // Função para atualizar a interface do usuário com as informações do servidor
 ipcMain.on('set-server', (event, serverId) => {
+	if(serverId == 0) serverId = 1;
 	saveSelectedServer(serverId);
 	getUsername((username) => {
 		if (!username) {
@@ -156,6 +167,35 @@ ipcMain.on('set-server', (event, serverId) => {
 ipcMain.on('open-link', (event, url) => {
 	shell.openExternal(url);
 });
+
+ipcMain.on('toggleAutoLaunch', (event, toggle) => {
+	console.log("Definindo auto launch para "+toggle);
+	app.setLoginItemSettings({
+		openAtLogin: toggle
+	})
+});
+ipcMain.on('getAutoLaunchStatus', (event) => {
+	const isEnabled = app.getLoginItemSettings().openAtLogin;
+    mainWindow.webContents.send('autoLaunchStatus', isEnabled);  // Envia o status de volta ao front-end
+});
+
+
+ipcMain.on('open-game-folder', (event) => {
+	const gameFolder = path.join(os.homedir(), 'Documents', 'Horizonte Roleplay Launcher', 'Game');
+	shell.openPath(gameFolder)
+	.then((result) => {
+		if (result) {
+			console.error(`Erro ao abrir a pasta: ${result}`);
+		} else {
+			console.log(`Pasta aberta com sucesso: ${gameFolder}`);
+		}
+	})
+	.catch((err) => {
+		console.error(`Erro ao abrir a pasta: ${err}`);
+	});
+});
+
+
 ipcMain.on('play-samp', (event, serverId) => {
 	const sampPath = path.join(os.homedir(), 'Documents', 'Horizonte Roleplay Launcher', 'Game', 'sampcmd.exe');
 	
@@ -168,7 +208,6 @@ ipcMain.on('play-samp', (event, serverId) => {
 	const server = serverInfo.query[serverId-1];
 	getUsername((username) => {
 		if (!username || username === "Nome_Sobrenome" || username === "") {
-			console.log("Sem username, solicitar ao usuario um username para definir.");
 			mainWindow.webContents.send('show-username-modal');
 			return;
 		}
@@ -217,46 +256,73 @@ function checkGameFolder() {
 	return result;
 }
 
-var latestVersion = app.getVersion()
-var currentVersion = app.getVersion()
+var latestVersion;
+var currentVersion;
+var latestLauncherVersion;
+var currentLauncherVersion;
+
 async function checkGameUpdate() {
 	let needsUpdate = false;
-
-	const gameFolderPath = path.join(os.homedir(), 'Documents', 'Horizonte Roleplay Launcher', 'Game', 'SAMP');
-	let result = fs.existsSync(gameFolderPath);
-	if (result === true) {
-		const updateUrl = 'https://horizonte-rp.com/api/launcher/getUpdate';
-
-		try {
-			const updateInfo = await new Promise((resolve, reject) => {
-				https.get(updateUrl, (resp) => {
-					let data = '';
-					resp.on('data', (chunk) => {
-						data += chunk;
-					});
-					resp.on('end', () => {
-						try {
-							const jsonData = JSON.parse(data);
-							resolve(jsonData);
-						} catch (error) {
-							reject(error);
-						}
-					});
-				}).on('error', (err) => {
-					reject(err);
+	const updateUrl = 'https://horizonte-rp.com/api/launcher/getUpdate';
+	try {
+		const updateInfo = await new Promise((resolve, reject) => {
+			https.get(updateUrl, (resp) => {
+				let data = '';
+				resp.on('data', (chunk) => {
+					data += chunk;
 				});
+				resp.on('end', () => {
+					try {
+						const jsonData = JSON.parse(data);
+						resolve(jsonData);
+					} catch (error) {
+						reject(error);
+					}
+				});
+			}).on('error', (err) => {
+				reject(err);
 			});
+		});
 
-			latestVersion = updateInfo.version;
-			currentVersion = app.getVersion();
-			const downloadUrl = updateInfo.url;
-			return currentVersion !== latestVersion;
-		} catch (error) {
-			console.error('Erro ao verificar atualizaçao:', error);
-			return false;
-		}
-	} else {
-		return true;
+		latestVersion = updateInfo.game_data.padrao.version;
+		currentVersion = loadConfig().gameVersion;
+		const downloadUrl = updateInfo.game_data.padrao.url;
+		return currentVersion !== latestVersion;
+	} catch (error) {
+		console.error('Erro ao verificar atualizaçao:', error);
+		return false;
+	}
+}
+
+async function checkLauncherUpdate() {
+	let needsUpdate = false;
+	const updateUrl = 'https://horizonte-rp.com/api/launcher/getUpdate';
+	try {
+		const updateInfo = await new Promise((resolve, reject) => {
+			https.get(updateUrl, (resp) => {
+				let data = '';
+				resp.on('data', (chunk) => {
+					data += chunk;
+				});
+				resp.on('end', () => {
+					try {
+						const jsonData = JSON.parse(data);
+						resolve(jsonData);
+					} catch (error) {
+						reject(error);
+					}
+				});
+			}).on('error', (err) => {
+				reject(err);
+			});
+		});
+
+		latestLauncherVersion = updateInfo.launcher.version;
+		currentLauncherVersion = loadConfig().currentVersion;
+		return currentLauncherVersion !== latestLauncherVersion;
+	} catch (error) {
+		console.error('Erro ao verificar atualizaçao do launcher', error);
+		return false;
 	}
 }
 
@@ -301,37 +367,57 @@ function extractFile(zipPath, dest) {
 		const totalEntries = zip.getEntries().length;
 		let extractedEntries = 0;
 
+        // Cria o diretório de destino se não existir
 		if (!fs.existsSync(dest)) {
 			fs.mkdirSync(dest, { recursive: true });
 		}
 
-		function extractNextEntry() {
-			if (extractedEntries < totalEntries) {
-				const entry = zip.getEntries()[extractedEntries];
-				const outputPath = path.join(dest, entry.entryName);
+		function removeExistingEntry(outputPath) {
+            // Remove arquivo ou diretório existente
+			if (fs.existsSync(outputPath)) {
+				const stat = fs.statSync(outputPath);
+				try {
+					if (stat.isDirectory()) {
+                        fs.rmdirSync(outputPath, { recursive: true }); // Remove diretório recursivamente
+                    } else {
+                        fs.unlinkSync(outputPath); // Remove arquivo
+                    }
+                } catch (error) {
+                	console.log(`Não foi possível remover ${outputPath}:`, error.message);
+                }
+            }
+        }
 
-				if (fs.existsSync(outputPath)) {
-					if (fs.statSync(outputPath).isDirectory()) {
-						fs.rmdirSync(outputPath, { recursive: true });
-					} else {
-						fs.unlinkSync(outputPath);
-					}
-				}
+        function extractNextEntry() {
+        	if (extractedEntries < totalEntries) {
+        		const entry = zip.getEntries()[extractedEntries];
+        		const outputPath = path.join(dest, entry.entryName);
 
-				zip.extractEntryTo(entry, dest, true, false);
-				extractedEntries++;
-				const percent = ((extractedEntries / totalEntries) * 100).toFixed(2);
-				mainWindow.webContents.send('download-progress', percent, true);
+                // Remove o arquivo/diretório existente antes de extrair
+        		removeExistingEntry(outputPath);
 
-				setImmediate(extractNextEntry);
-			} else {
-				resolve();
-			}
-		}
+        		try {
+                    // Extraindo a entrada para o diretório de destino
+        			zip.extractEntryTo(entry, dest, true, false);
+        		} catch (error) {
+                    // Apenas loga o erro e continua
+        			console.error(`Erro ao extrair entrada: ${entry.entryName}. Continuando...`, error);
+        		}
+
+        		extractedEntries++;
+        		const percent = ((extractedEntries / totalEntries) * 100).toFixed(2);
+        		mainWindow.webContents.send('download-progress', percent, true);
+
+                setImmediate(extractNextEntry); // Chama a próxima entrada de forma assíncrona
+            } else {
+            	saveCurrentGameVersion(latestVersion);
+                resolve(); // Resolve a promise quando todas as entradas forem extraídas
+            }
+        }
 
         // Inicia o processo de extração
-		extractNextEntry();
-	});
+        extractNextEntry();
+    });
 }
 
 let selectedServer = loadSelectedServer();
@@ -393,7 +479,7 @@ const createWindow = (file) => {
 		minHeight: (file != "download.html") ? (720) : 600,
 		height: (file != "download.html") ? (720) : 600,
 		webPreferences: {
-			preload: path.join(__dirname, 'preload.js'),
+			preload: path.join(__dirname, 'preload.obfuscated.js'),
 			contextIsolation: true,
 			enableRemoteModule: false,
 			nodeIntegration: true
@@ -401,6 +487,8 @@ const createWindow = (file) => {
 	});
 
 	ensureConfigFile();
+	currentLauncherVersion = app.getVersion();
+	saveCurrentLauncherVersion(currentLauncherVersion);
 
 	mainWindow.maximize();
 	mainWindow.loadFile(path.join(__dirname, file));
@@ -429,17 +517,28 @@ const createWindow = (file) => {
 		});
 	}
 
-	// mainWindow.webContents.on("before-input-event", (event, input) => {
-	// 	if (input.control && input.code === 'KeyR') {
-	// 		event.preventDefault();
-	// 		return
-	// 	}
+	if(loadSelectedServer() == 0) saveSelectedServer(1);
+	saveSelectedServer(loadSelectedServer());
+	getUsername((username) => {
+		if (!username) {
+			saveUsername('Nome_Sobrenome');
+			username = 'Nome_Sobrenome';
+		}
+		const selectedServer = serverInfo.query[loadSelectedServer()-1];
+		mainWindow.webContents.send('checkSelectedServer', loadSelectedServer(), username, selectedServer);
+	});
 
-	// 	if(input.control && ['Equal', 'Minus'].includes(input.code)) {
-	// 		event.preventDefault()
-	// 		return
-	// 	}
-	// })
+	mainWindow.webContents.on("before-input-event", (event, input) => {
+		if (input.control && input.code === 'KeyR') {
+			event.preventDefault();
+			return
+		}
+
+		if(input.control && ['Equal', 'Minus'].includes(input.code)) {
+			event.preventDefault()
+			return
+		}
+	})
 };
 
 
@@ -494,18 +593,27 @@ ipcMain.on('start-check-gta-process', () => {
 			setActivity('idle'); // Define a atividade como inativa
 		}
 		
-		// Envia o estado do processo para a interface
-		mainWindow.webContents.send('gta-process-status', isRunning);
+		const gameFolder = path.join(os.homedir(), 'Documents', 'Horizonte Roleplay Launcher', 'Game');
+		mainWindow.webContents.send('gta-process-status', isRunning, gameFolder);
 	}, 1000); // Verifica a cada 1 segundo
 });
 ipcMain.on('start-check-update', async () => {
 	const needsUpdate = await checkGameUpdate(); // Espera pela função assíncrona
-	mainWindow.webContents.send('game-needs-update', needsUpdate, currentVersion, latestVersion);
+	mainWindow.webContents.send('game-needs-update', needsUpdate, loadConfig().gameVersion, latestVersion);
 
 	setInterval(async () => {
 		const needsUpdate = await checkGameUpdate(); // Verifica a atualização periodicamente
-		mainWindow.webContents.send('game-needs-update', needsUpdate, currentVersion, latestVersion);
-	}, 30000);
+		mainWindow.webContents.send('game-needs-update', needsUpdate, loadConfig().gameVersion, latestVersion);
+	}, 60000);
+});
+ipcMain.on('start-check-launcher-update', async () => {
+	const needsUpdate = await checkLauncherUpdate(); // Espera pela função assíncrona
+	mainWindow.webContents.send('launcher-needs-update', needsUpdate, loadConfig().currentVersion, latestLauncherVersion);
+
+	setInterval(async () => {
+		const needsUpdate = await checkLauncherUpdate(); // Verifica a atualização periodicamente
+		mainWindow.webContents.send('launcher-needs-update', needsUpdate, loadConfig().currentVersion, latestLauncherVersion);
+	}, 60000);
 });
 ipcMain.on('stop-check-gta-process', () => {
 	clearInterval(checkGTAInterval);
@@ -514,25 +622,103 @@ ipcMain.on('stop-check-gta-process', () => {
 
 
 ipcMain.on('start-download', async (event) => {
-	const url = 'https://dl.dropboxusercontent.com/scl/fi/pnci4mg85bhnc59t4tvgn/HZRP_GameFolder.zip?rlkey=jxnhtxwtue8d1pv6k3wnld1m8&dl=1';
 	const zipPath = path.join(os.tmpdir(), 'HZRP_GameFolder.zip');
 	const gameFolderPath = path.join(os.homedir(), 'Documents', 'Horizonte Roleplay Launcher', 'Game');
 
 	createGameFolder();
 
+	const updateUrl = 'https://horizonte-rp.com/api/launcher/getUpdate';
 	try {
-        setActivity('downloading'); // Definindo a atividade para "Fazendo download"
-        await downloadFile(url, zipPath);
-        await extractFile(zipPath, gameFolderPath);
-        
-        const needsUpdate = checkGameUpdate();
-        mainWindow.webContents.send('game-needs-update', needsUpdate);
-        
-        setActivity('idle'); // Atualizando a atividade para "Jogando" após o download
-    } catch (error) {
-    	console.error('Erro no download ou extração:', error);
-    	dialog.showErrorBox('Erro', 'Ocorreu um erro durante o download ou extração. Por favor, tente novamente.');
-    }
+		const updateInfo = await new Promise((resolve, reject) => {
+			https.get(updateUrl, (resp) => {
+				let data = '';
+				resp.on('data', (chunk) => {
+					data += chunk;
+				});
+				resp.on('end', () => {
+					try {
+						const jsonData = JSON.parse(data);
+						resolve(jsonData);
+					} catch (error) {
+						reject(error);
+					}
+				});
+			}).on('error', (err) => {
+				reject(err);
+			});
+		});
+
+		latestVersion = updateInfo.game_data.padrao.version;
+		currentVersion = loadConfig().gameVersion;
+		const url = updateInfo.game_data.padrao.url;
+		try {
+			setActivity('downloading');
+			await downloadFile(url, zipPath);
+			await extractFile(zipPath, gameFolderPath);
+
+			const needsUpdate = checkGameUpdate();
+			mainWindow.webContents.send('game-needs-update', needsUpdate, loadConfig().gameVersion, latestVersion);
+
+			setActivity('idle');
+		} catch (error) {
+			console.error('Erro no download ou extração:', error);
+			dialog.showErrorBox('Erro', 'Ocorreu um erro durante o download ou extração. Por favor, tente novamente.');
+		}
+	} catch (error) {
+		console.error('Erro ao verificar atualizaçao:', error);
+		return false;
+	}
+});
+
+
+ipcMain.on('start-download-launcher', async (event) => {
+    // Verifica se o autoUpdater já está em execução
+	if (autoUpdater.downloadPromise) {
+		console.warn('Um download já está em andamento.');
+		return;
+	}
+
+    // Inicia a verificação de atualizações
+	try {
+		const updateCheckResult = await autoUpdater.checkForUpdates();
+		if (updateCheckResult && updateCheckResult.updateInfo) {
+			startFakeProgress();
+			autoUpdater.downloadUpdate();
+		} else {
+			event.reply('update-not-available');
+		}
+	} catch (error) {
+		console.error('Erro ao verificar atualizações:', error);
+		event.reply('update-error', error.message);
+	}
+
+});
+let fakeProgress = 0;
+let intervalId;
+function startFakeProgress() {
+	intervalId = setInterval(() => {
+		if (fakeProgress < 95) {
+            fakeProgress += 0.2;  // Aumenta progressivamente até 95%
+            mainWindow.webContents.send('download-progress-launcher', fakeProgress);
+        }
+    }, 600);  // Incremento a cada 100ms
+}
+
+function stopFakeProgress() {
+    clearInterval(intervalId);  // Para o incremento
+    fakeProgress = 100;  // Quando o download real termina, seta para 100%
+    mainWindow.webContents.send('download-progress-launcher', fakeProgress);  // Envia 100% para o frontend
+}
+
+// Evento quando a atualização é baixada
+autoUpdater.on('update-downloaded', (info) => {
+	stopFakeProgress();
+	saveCurrentLauncherVersion(latestLauncherVersion);
+	autoUpdater.quitAndInstall(true, true)
+});
+
+autoUpdater.on('error', (error) => {
+	console.error('Erro no autoUpdater:', error);
 });
 
 function saveUsername(username) {
@@ -547,11 +733,9 @@ function saveUsername(username) {
 				if (err) {
 					console.error('Erro ao criar a chave PlayerName:', err);
 				} else {
-					console.log('Nome de usuário salvo com sucesso:', username);
 				}
 			});
 		} else {
-			console.log('Nome de usuário já existe:', item.value);
 		}
 	});
 }
@@ -567,7 +751,6 @@ function getUsername(callback) {
 			console.error('Erro ao obter o username:', err);
             callback(null); // Retorna null em caso de erro ou se a chave não existir
         } else {
-        	console.log('Username obtido com sucesso:', item.value);
             callback(item.value); // Retorna o valor do username
         }
     });
@@ -584,7 +767,6 @@ function editUsername(newUsername) {
 		if (err) {
 			console.error('Erro ao atualizar o nome de usuário:', err);
 		} else {
-			console.log('Nome de usuário atualizado para:', newUsername);
 		}
 	});
 }
@@ -612,7 +794,6 @@ function checkAndUpdateRegistry() {
 		if (!username) {
 			saveUsername('Nome_Sobrenome');
 		} else {
-			console.log(`Nome de usuário encontrado no registro: ${username}`);
 		}
 	});
 
@@ -623,7 +804,6 @@ function checkAndUpdateRegistry() {
 				if (err) {
 					console.error('Erro ao criar a chave do registro:', err);
 				} else {
-					console.log('Chave do registro criada com sucesso:', gtaExePath);
 				}
 			});
 		} else {
@@ -632,37 +812,13 @@ function checkAndUpdateRegistry() {
 				if (err) {
 					console.error('Erro ao atualizar a chave do registro:', err);
 				} else {
-					console.log('Chave do registro atualizada com sucesso:', gtaExePath);
 				}
 			});
 		}
 	});
 }
 
-autoUpdater.on('update-available', () => {
-  dialog.showMessageBox({
-    type: 'info',
-    title: 'Atualização disponível',
-    message: 'Uma nova versão está disponível. Baixando agora...'
-  });
-});
-
-autoUpdater.on('update-downloaded', () => {
-  dialog.showMessageBox({
-    type: 'info',
-    title: 'Atualização pronta',
-    message: 'Uma nova versão foi baixada. O aplicativo será atualizado agora.'
-  }).then(() => {
-    autoUpdater.quitAndInstall();
-  });
-});
-
-autoUpdater.on('error', (error) => {
-  log.error('Erro ao verificar atualizações:', error);
-});
-
 app.whenReady().then(() => {
-	autoUpdater.checkForUpdatesAndNotify();
     checkAndUpdateRegistry(); // Verifica e atualiza a chave do registro
     createWindow('index.html');
 
@@ -679,6 +835,7 @@ app.whenReady().then(() => {
     		autoHideMenuBar: true,
     		frame: true,
     		webPreferences: {
+    			devTools: !app.isPackaged,
     			nodeIntegration: true
     		}
     	});
